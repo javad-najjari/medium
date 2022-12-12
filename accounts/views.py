@@ -1,0 +1,103 @@
+import random, string
+from utils import reset_password, send_otp_code
+from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import User, Reset, OtpCode
+from .serializers import CreateUserSerializer
+
+
+
+
+class GetUserView(APIView):
+    def post(self, request):
+
+        serializer = CreateUserSerializer(data=request.data)
+        if serializer.is_valid():
+            
+            random_code = random.randint(100000, 999999)
+            send_otp_code(serializer.validated_data['email'], random_code)
+            OtpCode.objects.create(email=serializer.validated_data['email'], code=random_code)
+
+            request.session['user_registration_info'] = {
+                'username': serializer.validated_data['username'],
+                'email': serializer.validated_data['email'],
+                'password': serializer.validated_data['password']
+            }
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        value = serializer.data
+
+        username_exists = User.objects.filter(username=value['username']).exists()
+        email_exists = User.objects.filter(email=value['email']).exists()
+
+        if username_exists or email_exists:
+            return Response(status=status.HTTP_409_CONFLICT)
+
+        if value['password'] != value['password2']:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserRegisterView(APIView):
+    def post(self, request):
+
+        try:
+            otp_code = OtpCode.objects.get(email=request.session['user_registration_info']['email'], code=request.data['code'])
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        elapsed_time = timezone.now() - otp_code.created
+        data = request.session['user_registration_info']
+
+        if elapsed_time.seconds > 180:
+            otp_code.delete()
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        User.objects.create_user(
+            username=data['username'], email=data['email'], password=data['password']
+        )
+        otp_code.delete()
+        del request.session['user_registration_info']
+        return Response(status=status.HTTP_200_OK)
+
+
+class ForgotPasswordView(APIView):
+    def post(self, request):
+
+        token = ''.join(random.choice(
+            string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(30)
+            )
+
+        Reset.objects.create(
+            email=request.data['email'], token=token
+        )
+        reset_password(request.data['email'], token)
+        return Response(status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    def post(self, request, token):
+        reset = get_object_or_404(Reset, token=token)
+        elapsed_time = timezone.now() - reset.created
+        if elapsed_time.seconds > 180:
+            reset.delete()
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        user = User.objects.get(email=reset.email)
+        password = request.data['password']
+        password2 = request.data['password2']
+
+        if password != password2:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        user.set_password(password)
+        user.save()
+        reset.delete()
+        
+        return Response(status=status.HTTP_200_OK)
+
+
