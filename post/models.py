@@ -21,3 +21,15 @@ class Post(models.Model):
     def short_description(self):
         return self.description[:30]
 
+
+class File(models.Model):
+    file = models.FileField(upload_to='post')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='files')
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('created',)
+    
+    def get_post(self):
+        return self.post.title
+

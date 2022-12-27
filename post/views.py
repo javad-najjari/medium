@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .serializers import PostSerializer
-from .models import Post
+from .models import Post, File
 
 
 
@@ -22,14 +22,19 @@ class CreatePostView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        data = request.data
-        data._mutable = True
-        data['user'] = request.user.id
-        serializer = PostSerializer(data=data)
+        request.data._mutable = True
+        request.data['user'] = request.user.id
+        serializer = PostSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return Response(status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        files = request.FILES.getlist('files')
+        post = Post.objects.last()
+        for file in files:
+            File.objects.create(file=file, post=post)
+        return Response(status=status.HTTP_200_OK)
 
 
 class DeletePostView(APIView):
@@ -54,4 +59,7 @@ class UpdatePostView(APIView):
             serializer.save()
             return Response(status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
 

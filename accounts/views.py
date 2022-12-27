@@ -140,14 +140,6 @@ class CreateBookMarkView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        # data = request.data
-        # data._mutable = True
-        # data['user'] = request.user
-        # serializer = BookMarkSerializer(data=data)
-        # if serializer.is_valid():
-        #     serializer.save()
-        #     return Response(status=status.HTTP_200_OK)
-        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         data = request.data
         BookMark.objects.create(
             title = data['title'], user = request.user
