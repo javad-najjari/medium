@@ -43,8 +43,10 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
 
     'accounts.apps.AccountsConfig',
+    'post.apps.PostConfig',
 ]
 
 MIDDLEWARE = [

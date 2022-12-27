@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, BookMark, BookMarkUser
 
 
 
@@ -23,4 +23,41 @@ class CreateUserSerializer(serializers.ModelSerializer):
         if data['password'] != data['password2']:
             raise serializers.ValidationError('passwords must match')
         return data
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'profile')
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('name', 'family', 'username', 'skills', 'email', 'profile', 'about', 'followers')
+
+
+class UserEditSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('name', 'family', 'skills', 'profile', 'about')
+
+
+class BookMarkSerializer(serializers.ModelSerializer):
+    users = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookMark
+        fields = ('title', 'users')
+    
+    def get_users(self, obj):
+        bookmark_users = BookMarkUser.objects.filter(book_mark=obj)
+        users = []
+        for bookmark_user in bookmark_users:
+            users.append(bookmark_user.user)
+        serializer = UserSerializer(users, many=True)
+        return serializer.data
 

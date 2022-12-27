@@ -23,7 +23,7 @@ def send_otp_code(email, code):
 
 
 def reset_password(email, token):
-    url = 'http://localhost:8000/reset-password/' + token
+    url = 'https://medium.pythonanywhere.com/reset-password/' + token
     msg = EmailMessage()
     msg['Subject'] = 'reset password'
     msg['From'] = EMAIL_HOST_USER

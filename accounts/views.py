@@ -5,8 +5,11 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .models import User, Reset, OtpCode
-from .serializers import CreateUserSerializer
+from rest_framework.permissions import IsAuthenticated
+from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
+from .serializers import (
+        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer,
+)
 
 
 
@@ -100,4 +103,99 @@ class ResetPasswordView(APIView):
         
         return Response(status=status.HTTP_200_OK)
 
+
+class FollowView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, user_id):
+        from_user = request.user
+        to_user = get_object_or_404(User, pk=id)
+        Follow.objects.create(from_user=from_user, to_user=to_user)
+        return Response(status=status.HTTP_200_OK)
+
+
+class UserProfileView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, user_id):
+        user = get_object_or_404(User, pk=user_id)
+        serializer = UserDetailSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserEditView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def put(self, request, user_id):
+        user = get_object_or_404(User, pk=user_id)
+        if request.user != user:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        serializer = UserEditSerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)
+
+
+class CreateBookMarkView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        # data = request.data
+        # data._mutable = True
+        # data['user'] = request.user
+        # serializer = BookMarkSerializer(data=data)
+        # if serializer.is_valid():
+        #     serializer.save()
+        #     return Response(status=status.HTTP_200_OK)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = request.data
+        BookMark.objects.create(
+            title = data['title'], user = request.user
+        )
+        return Response(status=status.HTTP_200_OK)
+
+
+class DeleteBookMarkView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, bookmark_id):
+        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
+        if book_mark.user != request.user:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        book_mark.delete()
+        return Response(status=status.HTTP_200_OK)
+
+
+class CreateBookMarkUserView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, bookmark_id, user_id):
+        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
+        user = get_object_or_404(User, pk=user_id)
+        if not BookMarkUser.objects.filter(book_mark=book_mark, user=user).exists():
+            if book_mark.user != request.user:
+                return Response(status=status.HTTP_401_UNAUTHORIZED)
+            BookMarkUser.objects.create(book_mark=book_mark, user=user)
+            return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteBookMarkUserView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def delete(self, request, bookmarkuser_id):
+        book_mark_user = get_object_or_404(BookMarkUser, pk=bookmarkuser_id)
+        if book_mark_user.book_mark.user != request.user:
+            return Response(status.status.HTTP_401_UNAUTHORIZED)
+        book_mark_user.delete()
+        return Response(status=status.HTTP_200_OK)
+
+
+class GetBookMarkView(APIView):
+    permission_classes = (IsAuthenticated,)
+    
+    def get(self, request, bookmark_id):
+        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
+        serializer = BookMarkSerializer(book_mark)
+        return Response(serializer.data)
 

@@ -60,4 +60,23 @@ class OtpCode(models.Model):
         return self.email
 
 
+class Follow(models.Model):
+    from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_followings')
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='user_followers')
+
+    def __str__(self):
+        return f'{self.from_user} - {self.to_user}'
+
+
+class BookMark(models.Model):
+    title = models.CharField(max_length=255)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookmarks')
+
+    def __str__(self):
+        return f'{self.title} - {self.user}'
+
+
+class BookMarkUser(models.Model):
+    book_mark = models.ForeignKey(BookMark, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
 
