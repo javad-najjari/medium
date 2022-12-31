@@ -19,7 +19,7 @@ class BookMarkAdmin(admin.ModelAdmin):
     list_display = ('title', 'user')
 
 class BookMarkUserAdmin(admin.ModelAdmin):
-    list_display = ('book_mark', 'user')
+    list_display = ('book_mark', 'post')
 
 
 admin.site.register(User, UserAdmin)

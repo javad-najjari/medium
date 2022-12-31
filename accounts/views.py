@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from post.models import Post
 from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
 from .serializers import (
         CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer,
@@ -161,13 +162,13 @@ class DeleteBookMarkView(APIView):
 class CreateBookMarkUserView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, bookmark_id, user_id):
+    def post(self, request, bookmark_id, post_id):
         book_mark = get_object_or_404(BookMark, pk=bookmark_id)
-        user = get_object_or_404(User, pk=user_id)
-        if not BookMarkUser.objects.filter(book_mark=book_mark, user=user).exists():
+        post = get_object_or_404(Post, pk=post_id)
+        if not BookMarkUser.objects.filter(book_mark=book_mark, post=post).exists():
             if book_mark.user != request.user:
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
-            BookMarkUser.objects.create(book_mark=book_mark, user=user)
+            BookMarkUser.objects.create(book_mark=book_mark, post=post)
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
@@ -189,5 +190,15 @@ class GetBookMarkView(APIView):
     def get(self, request, bookmark_id):
         book_mark = get_object_or_404(BookMark, pk=bookmark_id)
         serializer = BookMarkSerializer(book_mark)
+        return Response(serializer.data)
+
+
+class GetBookMarkListView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        book_marks = BookMark.objects.filter(user=user)
+        serializer = BookMarkSerializer(book_marks, many=True)
         return Response(serializer.data)
 

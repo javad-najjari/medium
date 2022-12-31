@@ -8,12 +8,10 @@ class User(AbstractBaseUser):
     name = models.CharField(max_length=150, null=True, blank=True)
     family = models.CharField(max_length=150, null=True, blank=True)
     username = models.CharField(max_length=150, unique=True)
-    # phone_number = models.CharField(max_length=150, unique=True)
     skills = models.CharField(max_length=150, null=True)
     email = models.CharField(max_length=150, unique=True)
     profile = models.ImageField(null=True, blank=True)
     about = models.TextField(null=True, blank=True)
-    # Products = models.ForeignKey(Product, on_delete=models.CASCADE)
     followers = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
@@ -78,5 +76,6 @@ class BookMark(models.Model):
 
 class BookMarkUser(models.Model):
     book_mark = models.ForeignKey(BookMark, on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey('post.Post', on_delete=models.CASCADE)
+
 
