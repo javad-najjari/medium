@@ -57,13 +57,15 @@ class UserRegisterView(APIView):
             # if it is requested through postman
             # user information is stored in sessions
             data = request.session['user_registration_info']
+            code = request.data['code']
             del request.session['user_registration_info']
         except:
             # if it is requested through frontend
             # The frontend should send the user information (in body) that it got from the previous endpoint
             data = request.data['data']
+            code = request.data['data']['code']
         
-        otp_code = OtpCode.objects.filter(email=data['email'], code=request.data['code']).first()
+        otp_code = OtpCode.objects.filter(email=data['email'], code=code).first()
         if otp_code is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         
