@@ -6,6 +6,8 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from post.models import Post
 from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
 from .serializers import (
@@ -25,12 +27,14 @@ class GetUserView(APIView):
             send_otp_code(serializer.validated_data['email'], random_code)
             OtpCode.objects.create(email=serializer.validated_data['email'], code=random_code)
 
+            # To request with postman
             request.session['user_registration_info'] = {
                 'username': serializer.validated_data['username'],
                 'email': serializer.validated_data['email'],
                 'password': serializer.validated_data['password']
             }
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            return Response(status=status.HTTP_200_OK)
 
         value = serializer.data
 
@@ -50,23 +54,34 @@ class UserRegisterView(APIView):
     def post(self, request):
 
         try:
-            otp_code = OtpCode.objects.get(email=request.session['user_registration_info']['email'], code=request.data['code'])
+            # if it is requested through postman
+            # user information is stored in sessions
+            data = request.session['user_registration_info']
+            del request.session['user_registration_info']
         except:
+            # if it is requested through frontend
+            # The frontend should send the user information (in body) that it got from the previous endpoint
+            data = request.data['data']
+        
+        otp_code = OtpCode.objects.filter(email=data['email'], code=request.data['code']).first()
+        if otp_code is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
-
+        
         elapsed_time = timezone.now() - otp_code.created
-        data = request.session['user_registration_info']
-
         if elapsed_time.seconds > 180:
             otp_code.delete()
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        User.objects.create_user(
+        user = User.objects.create_user(
             username=data['username'], email=data['email'], password=data['password']
         )
+        
         otp_code.delete()
-        del request.session['user_registration_info']
-        return Response(status=status.HTTP_200_OK)
+        tokens = {
+            'refresh': str(TokenObtainPairSerializer().get_token(user)),
+            'access': str(AccessToken().for_user(user))
+        }
+        return Response({'tokens': tokens}, status=status.HTTP_200_OK)
 
 
 class ForgotPasswordView(APIView):
