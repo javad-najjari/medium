@@ -92,7 +92,10 @@ class ForgotPasswordView(APIView):
         token = ''.join(random.choice(
             string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(30)
             )
-
+        
+        if not User.objects.filter(email=request.data['email']).exists():
+            return Response({'detail': 'there is no user with this email'}, status=status.HTTP_404_NOT_FOUND)
+            
         Reset.objects.create(
             email=request.data['email'], token=token
         )
