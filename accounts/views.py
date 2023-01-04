@@ -16,7 +16,6 @@ from .serializers import (
 
 
 
-
 class GetUserView(APIView):
     def post(self, request):
 
@@ -24,8 +23,8 @@ class GetUserView(APIView):
         if serializer.is_valid():
             
             random_code = random.randint(100000, 999999)
-            send_otp_code(serializer.validated_data['email'], random_code)
             OtpCode.objects.create(email=serializer.validated_data['email'], code=random_code)
+            send_otp_code(serializer.validated_data['email'], random_code)
 
             # To request with postman
             request.session['user_registration_info'] = {
@@ -89,40 +88,64 @@ class UserRegisterView(APIView):
 class ForgotPasswordView(APIView):
     def post(self, request):
 
-        token = ''.join(random.choice(
-            string.ascii_lowercase + string.ascii_uppercase + string.digits) for _ in range(30)
-            )
-        
-        if not User.objects.filter(email=request.data['email']).exists():
+        email = request.data['email']
+
+        if not User.objects.filter(email=email).exists():
             return Response({'detail': 'there is no user with this email'}, status=status.HTTP_404_NOT_FOUND)
-            
-        Reset.objects.create(
-            email=request.data['email'], token=token
-        )
-        reset_password(request.data['email'], token)
-        return Response(status=status.HTTP_200_OK)
+        
+        random_code = random.randint(100000, 999999)
+        OtpCode.objects.create(email=email, code=random_code)
+        reset_password(email, random_code)
+
+        request.session['user_reset_password'] = {
+            'email': email,
+        }
+        return Response({'detail': f'the code was sent to this email: {email}'}, status=status.HTTP_200_OK)
+
+
+class CheckCodeView(APIView):
+    def post(self, request):
+        code = request.data['code']
+
+        try:
+            email = request.session['user_reset_password']['email']
+        except:
+            email = request.data['email']
+        
+        otp_code = OtpCode.objects.filter(email=email, code=code).first()
+        if otp_code is None:
+            return Response({'detail': 'the code is wrong'}, status=status.HTTP_404_NOT_FOUND)
+        
+        elapsed_time = timezone.now() - otp_code.created
+        if elapsed_time.seconds > 180:
+            otp_code.delete()
+            return Response({'detail': 'the code has expired'}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response({'detail': 'ok. now you can change your password'}, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):
-    def post(self, request, token):
-        reset = get_object_or_404(Reset, token=token)
-        elapsed_time = timezone.now() - reset.created
-        if elapsed_time.seconds > 180:
-            reset.delete()
-            return Response(status=status.HTTP_404_NOT_FOUND)
+    def post(self, request):
+        try:
+            email = request.session['user_reset_password']['email']
+        except:
+            email = request.data['email']
         
-        user = User.objects.get(email=reset.email)
+        user = get_object_or_404(User, email=email)
+
         password = request.data['password']
         password2 = request.data['password2']
 
         if password != password2:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'passwords does not match'}, status=status.HTTP_401_UNAUTHORIZED)
         
         user.set_password(password)
         user.save()
-        reset.delete()
-        
-        return Response(status=status.HTTP_200_OK)
+        try:
+            del request.session['user_reset_password']
+        except:
+            pass
+        return Response({'detail': 'password changed successfully'}, status=status.HTTP_200_OK)
 
 
 class FollowView(APIView):

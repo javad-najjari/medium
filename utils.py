@@ -21,17 +21,14 @@ def send_otp_code(email, code):
         server.send_message(msg)
 
 
-
-def reset_password(email, token):
-    url = 'https://medium.pythonanywhere.com/reset-password/' + token
+def reset_password(email, code):
     msg = EmailMessage()
     msg['Subject'] = 'reset password'
     msg['From'] = EMAIL_HOST_USER
     msg['To'] = email
-    msg.set_content(f'You can reset your password by this: {url}/')
+    msg.set_content(f'use this code to reset your password: {code}')
 
     with smtplib.SMTP_SSL(EMAIL_HOST, EMAIL_PORT_SSL) as server:
         server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
         server.send_message(msg)
-
 
