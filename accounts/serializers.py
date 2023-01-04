@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import User, BookMark, BookMarkUser
-from post.models import Post
 from post.serializers import PostSerializer
 
 
@@ -53,7 +52,7 @@ class BookMarkSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BookMark
-        fields = ('title', 'posts')
+        fields = ('id', 'title', 'posts')
     
     def get_users(self, obj):
         bookmark_users = BookMarkUser.objects.filter(book_mark=obj)
