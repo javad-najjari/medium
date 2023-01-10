@@ -25,7 +25,6 @@ class HomeView(APIView):
 
 
 class GetAllUsersView(APIView):
-    permission_classes = (IsAuthenticated,)
 
     def get(self, request):
         users = User.objects.all()
