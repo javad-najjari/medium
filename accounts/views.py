@@ -9,11 +9,19 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from post.models import Post
+from post.serializers import PostSerializer
 from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
 from .serializers import (
-        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer,
+        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer
 )
 
+
+
+class HomeView(APIView):
+    def get(self, request):
+        posts = Post.objects.all()[:10]
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetUserView(APIView):
@@ -158,6 +166,32 @@ class FollowView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
+class FollowingsView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        users = []
+        followings = user.user_followings.all()
+        for follow in followings:
+            users.append(follow.to_user)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FollowersView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request):
+        user = request.user
+        users = []
+        followings = user.user_followers.all()
+        for follow in followings:
+            users.append(follow.from_user)
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class UserProfileView(APIView):
     permission_classes = (IsAuthenticated,)
 
@@ -188,6 +222,22 @@ class CreateBookMarkView(APIView):
         BookMark.objects.create(
             title = data['title'], user = request.user
         )
+        return Response(status=status.HTTP_200_OK)
+
+
+class UpdateBookMarkView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def put(self, request, bookmark_id):
+        book_mark = get_object_or_404(BookMark, id=bookmark_id)
+        if request.user != book_mark.user:
+            return Response(
+                {'detail': 'you are not the creator of this bookmark'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        title = request.data['title']
+        book_mark.title = title
+        book_mark.save()
         return Response(status=status.HTTP_200_OK)
 
 
@@ -244,4 +294,14 @@ class GetBookMarkListView(APIView):
         book_marks = BookMark.objects.filter(user=user)
         serializer = BookMarkSerializer(book_marks, many=True)
         return Response(serializer.data)
+
+
+class GetPostListView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        posts = user.posts.all()
+        serializer = PostSerializer(posts, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
