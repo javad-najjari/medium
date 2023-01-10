@@ -6,6 +6,7 @@ from . import views
 
 urlpatterns = [
     path('home/', views.HomeView.as_view()),
+    path('all-users/', views.GetAllUsersView.as_view()),
 
     path('login/', TokenObtainPairView.as_view()),
     path('refresh/', TokenRefreshView.as_view()),
