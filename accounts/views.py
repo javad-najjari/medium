@@ -29,10 +29,9 @@ class HomeView(generics.ListAPIView):
 class GetAllUsersView(APIView):
 
     def get(self, request):
-        queryset = Post.objects.all()[:10]
-        serializer_class = PostSerializer
-        pagination_class = DefaultPagination
-
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class GetUserView(APIView):
