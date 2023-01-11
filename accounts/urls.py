@@ -18,8 +18,8 @@ urlpatterns = [
     path('followings/', views.FollowingsView.as_view()),
     path('followers/', views.FollowersView.as_view()),
 
-    path('user_profile/<int:user_id>/', views.UserProfileView.as_view()),
-    path('user_edit/<int:user_id>/', views.UserEditView.as_view()),
+    path('user_profile/<str:username>/', views.UserProfileView.as_view()),
+    path('user_edit/<str:username>/', views.UserEditView.as_view()),
 
     path('create-bookmark/', views.CreateBookMarkView.as_view()),
     path('update-bookmark/<int:bookmark_id>/', views.UpdateBookMarkView.as_view()),

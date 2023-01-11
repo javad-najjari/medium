@@ -1,4 +1,4 @@
-import random, string
+import random
 from utils import reset_password, send_otp_code
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -6,30 +6,32 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from post.models import Post
 from post.serializers import PostSerializer
-from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
+from .models import User, OtpCode, Follow, BookMark, BookMarkUser
+from .paginations import DefaultPagination
 from .serializers import (
         CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer
 )
 
 
 
-class HomeView(APIView):
-    def get(self, request):
-        posts = Post.objects.all()[:10]
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+class HomeView(generics.ListAPIView):
+
+    queryset = Post.objects.all()[:10]
+    serializer_class = PostSerializer
+    pagination_class = DefaultPagination
 
 
 class GetAllUsersView(APIView):
 
     def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        queryset = Post.objects.all()[:10]
+        serializer_class = PostSerializer
+        pagination_class = DefaultPagination
 
 
 
@@ -202,10 +204,9 @@ class FollowersView(APIView):
 
 
 class UserProfileView(APIView):
-    permission_classes = (IsAuthenticated,)
 
-    def get(self, request, user_id):
-        user = get_object_or_404(User, pk=user_id)
+    def get(self, request, username):
+        user = get_object_or_404(User, username=username)
         serializer = UserDetailSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -213,8 +214,8 @@ class UserProfileView(APIView):
 class UserEditView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def put(self, request, user_id):
-        user = get_object_or_404(User, pk=user_id)
+    def put(self, request, username):
+        user = get_object_or_404(User, username=username)
         if request.user != user:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = UserEditSerializer(user, data=request.data, partial=True)
