@@ -21,7 +21,7 @@ from .serializers import (
 
 class HomeView(generics.ListAPIView):
 
-    queryset = Post.objects.all()[:10]
+    queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = DefaultPagination
 
