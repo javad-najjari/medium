@@ -11,14 +11,21 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from post.models import Post
 from post.serializers import PostSerializer
 from .models import User, OtpCode, Follow, BookMark, BookMarkUser
 from .paginations import DefaultPagination
 from .serializers import (
-        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer
+        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer,
+        CustomTokenObtainPairSerializer
 )
 
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """ using the custom serializer to login. we access user here """
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class HomeView(generics.ListAPIView):
@@ -317,18 +324,18 @@ class GetPostListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetUserByTokenView(APIView):
-    def post(self, request):
-        raw_token = request.data['token']
-        try:
-            token = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=['HS256'])
-        except ExpiredSignatureError:
-            return Response({'detail': 'token has been expired'}, status=status.HTTP_400_BAD_REQUEST)
-        except InvalidSignatureError:
-            return Response({'detail': 'token is not valid'}, status=status.HTTP_400_BAD_REQUEST)
-
-        user = User.objects.get(id=token['user_id'])
-        serializer = UserDetailSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
+# class GetUserByTokenView(APIView):
+#     def post(self, request):
+#         raw_token = request.data['token']
+#         try:
+#             token = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=['HS256'])
+#         except ExpiredSignatureError:
+#             return Response({'detail': 'token has been expired'}, status=status.HTTP_400_BAD_REQUEST)
+#         except InvalidSignatureError:
+#             return Response({'detail': 'token is not valid'}, status=status.HTTP_400_BAD_REQUEST)
+#
+#         user = User.objects.get(id=token['user_id'])
+#         serializer = UserDetailSerializer(user)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#
+#

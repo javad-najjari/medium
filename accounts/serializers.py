@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import User, BookMark, BookMarkUser
 from post.serializers import PostSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 
@@ -69,4 +70,14 @@ class BookMarkSerializer(serializers.ModelSerializer):
             posts.append(bookmark_post.post)
         serializer = PostSerializer(posts, many=True)
         return serializer.data
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """ customizing the serializer class to get my custom data after login. we have access to the 'user' here """
+    def validate(self, attrs):
+        validated_data = super().validate(attrs)
+        validated_data['user'] = UserDetailSerializer(self.user).data
+        return validated_data
+
+
 

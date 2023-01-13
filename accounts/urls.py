@@ -1,5 +1,5 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
 
 
@@ -8,7 +8,7 @@ urlpatterns = [
     path('home/', views.HomeView.as_view()),
     path('all-users/', views.GetAllUsersView.as_view()),
 
-    path('login/', TokenObtainPairView.as_view()),
+    path('login/', views.CustomTokenObtainPairView.as_view()),
     path('refresh/', TokenRefreshView.as_view()),
     path('get_user/', views.GetUserView.as_view()),
     path('register/', views.UserRegisterView.as_view()),
@@ -31,5 +31,5 @@ urlpatterns = [
     path('get-bookmark-list/', views.GetBookMarkListView.as_view()),
 
     path('user-posts/<int:user_id>/', views.GetPostListView.as_view()),
-    path('get-user-by-token/', views.GetUserByTokenView.as_view()),
+    # path('get-user-by-token/', views.GetUserByTokenView.as_view()),
 ]
