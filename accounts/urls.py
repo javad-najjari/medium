@@ -31,4 +31,5 @@ urlpatterns = [
     path('get-bookmark-list/', views.GetBookMarkListView.as_view()),
 
     path('user-posts/<int:user_id>/', views.GetPostListView.as_view()),
+    path('get-user-by-token/', views.GetUserByTokenView.as_view()),
 ]

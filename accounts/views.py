@@ -1,7 +1,9 @@
-import random
+import random, jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
 from utils import reset_password, send_otp_code
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.conf import settings
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -313,4 +315,20 @@ class GetPostListView(APIView):
         posts = user.posts.all()
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GetUserByTokenView(APIView):
+    def post(self, request):
+        raw_token = request.data['token']
+        try:
+            token = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=['HS256'])
+        except ExpiredSignatureError:
+            return Response({'detail': 'token has been expired'}, status=status.HTTP_400_BAD_REQUEST)
+        except InvalidSignatureError:
+            return Response({'detail': 'token is not valid'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.get(id=token['user_id'])
+        serializer = UserDetailSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
