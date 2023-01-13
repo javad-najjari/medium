@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-
+from datetime import datetime
+from utils import get_time
 
 
 User = get_user_model()
@@ -15,11 +16,25 @@ class Post(models.Model):
     seo_description = models.CharField(max_length=255, null=True, blank=True)
     created = models.DateTimeField(auto_now_add=True)
 
+    def get_description(self):
+        return self.description[:30]
+    get_description.short_description = 'description'
+
+    def get_tags(self):
+        if self.tags:
+            if len(self.tags) > 50:
+                return self.tags[:50] + ' ...'
+            return self.tags
+        return None
+
+    def get_created(self):
+        elapsed_time = datetime.utcnow() - self.created.replace(tzinfo=None)
+        seconds = int(elapsed_time.total_seconds())
+        return get_time(seconds)
+    get_created.short_description = 'created'
+
     def __str__(self):
         return f'{self.user} - {self.title[:30]}'
-    
-    def short_description(self):
-        return self.description[:30]
 
 
 class File(models.Model):

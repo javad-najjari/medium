@@ -4,8 +4,8 @@ from .models import Post, File
 
 
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('user', 'title', 'short_description', 'created')
-    ordering = ('id',)
+    list_display = ('user', 'title', 'get_description', 'tags', 'get_created')
+    ordering = ('-created',)
 
 class FileAdmin(admin.ModelAdmin):
     list_display = ('get_post', 'created')

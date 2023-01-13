@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser
 from .managers import UserManager
+from django.utils import timezone
 
 
 
@@ -23,8 +24,44 @@ class User(AbstractBaseUser):
 
     def short_skills(self):
         if self.skills:
-            return self.skills[:50]
+            if len(self.skills) > 30:
+                return self.skills[:30] + ' ...'
+            return self.skills
         return None
+    short_skills.short_description = 'skills'
+
+    def has_profile(self):
+        if self.profile:
+            return True
+        return False
+    has_profile.boolean = True
+    has_profile.short_description = 'profile'
+
+    def short_about(self):
+        if self.about:
+            if len(self.about) > 30:
+                return self.about[:30] + ' ...'
+            return self.about
+        return None
+    short_about.short_description = 'about'
+
+    def user_is_admin(self):
+        if self.is_admin:
+            return True
+        return False
+    user_is_admin.boolean = True
+    user_is_admin.short_description = 'admin'
+
+    def activated(self):
+        if self.is_active:
+            return True
+        return False
+    activated.boolean = True
+    activated.short_description = 'active'
+
+    def followers_count(self):
+        return self.user_followers.count()
+    followers_count.short_description = 'followers'
 
     def __str__(self):
         return self.username
@@ -45,6 +82,20 @@ class Reset(models.Model):
     token = models.CharField(max_length=255, unique=True)
     created = models.DateTimeField(auto_now_add=True)
 
+    def is_valid(self):
+        elapsed_time = timezone.now() - self.created
+        if elapsed_time.seconds > 180:
+            return False
+        return True
+    is_valid.boolean = True
+    is_valid.short_description = 'valid'
+
+    def short_token(self):
+        if len(self.token) > 50:
+            return self.token[:50] + ' ...'
+        return self.token
+    short_token.short_description = 'token'
+
     def __str__(self):
         return self.email
 
@@ -53,6 +104,14 @@ class OtpCode(models.Model):
     email = models.CharField(max_length=255)
     code = models.CharField(max_length=10)
     created = models.DateTimeField(auto_now_add=True)
+
+    def is_valid(self):
+        elapsed_time = timezone.now() - self.created
+        if elapsed_time.seconds > 180:
+            return False
+        return True
+    is_valid.boolean = True
+    is_valid.short_description = 'valid'
 
     def __str__(self):
         return self.email
@@ -71,11 +130,19 @@ class BookMark(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookmarks')
 
     def __str__(self):
-        return f'{self.title} - {self.user}'
+        return f'{self.title} -> {self.user}'
 
 
 class BookMarkUser(models.Model):
     book_mark = models.ForeignKey(BookMark, on_delete=models.CASCADE)
     post = models.ForeignKey('post.Post', on_delete=models.CASCADE)
+
+    def get_bookmark(self):
+        return self.book_mark.title
+    get_bookmark.short_description = 'bookmark'
+
+    def get_user(self):
+        return self.book_mark.user
+    get_user.short_description = 'user'
 
 

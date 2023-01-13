@@ -32,3 +32,23 @@ def reset_password(email, code):
         server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
         server.send_message(msg)
 
+
+def get_time(seconds):
+    if seconds < 60:
+        return f'{seconds} seconds'
+    elif seconds < 3600:
+        if seconds // 60 == 1:
+            return '1 minute'
+        return f'{seconds // 60} minutes'
+    elif seconds < 86400:
+        if seconds // 3600 == 1:
+            return '1 hour'
+        return f'{seconds // 3600} hours'
+    elif seconds < 604800:
+        if seconds // 86400 == 1:
+            return '1 day'
+        return f'{seconds // 86400} days'
+    elif seconds // 604800 == 1:
+        return '1 week'
+    return f'{seconds // 604800} weeks'
+
