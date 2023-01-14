@@ -10,7 +10,6 @@ from .models import Post, File
 
 
 class GetPostView(APIView):
-    permission_classes = (IsAuthenticated,)
 
     def get(self, request, post_id):
         post = get_object_or_404(Post, pk=post_id)
