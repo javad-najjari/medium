@@ -35,10 +35,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
+    followers = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'name', 'family', 'username', 'skills', 'email', 'profile', 'about')
+        fields = ('id', 'name', 'family', 'username', 'skills', 'email', 'profile', 'about', 'followers')
+    
+    def get_followers(self, obj):
+        return obj.user_followers.count()
 
 
 class UserEditSerializer(serializers.ModelSerializer):

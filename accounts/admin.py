@@ -6,6 +6,7 @@ from .models import User, Reset, OtpCode, Follow, BookMark, BookMarkUser
 class UserAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'short_about', 'has_profile', 'short_skills', 'activated', 'user_is_admin', 'followers_count')
     ordering = ('-is_admin', 'id')
+    list_per_page = 31
 
 class ResetAdmin(admin.ModelAdmin):
     list_display = ('email', 'short_token', 'is_valid')
