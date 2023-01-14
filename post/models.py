@@ -9,7 +9,6 @@ User = get_user_model()
 class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     title = models.CharField(max_length=255)
-    body = models.TextField()
     tags = models.CharField(max_length=500, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     seo_title = models.CharField(max_length=255, null=True, blank=True)
@@ -17,13 +16,17 @@ class Post(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def get_description(self):
-        return self.description[:30]
+        if self.description:
+            if len(self.description) > 30:
+                return self.description[:30] + ' ...'
+            return self.description
+        return None
     get_description.short_description = 'description'
 
     def get_tags(self):
         if self.tags:
-            if len(self.tags) > 50:
-                return self.tags[:50] + ' ...'
+            if len(self.tags) > 30:
+                return self.tags[:30] + ' ...'
             return self.tags
         return None
 
@@ -32,6 +35,9 @@ class Post(models.Model):
         seconds = int(elapsed_time.total_seconds())
         return get_time(seconds)
     get_created.short_description = 'created'
+
+    def page_count(self):
+        return self.files.count()
 
     def __str__(self):
         return f'{self.user} - {self.title[:30]}'

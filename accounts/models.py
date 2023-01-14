@@ -11,9 +11,8 @@ class User(AbstractBaseUser):
     username = models.CharField(max_length=150, unique=True)
     skills = models.CharField(max_length=150, null=True)
     email = models.CharField(max_length=150, unique=True)
-    profile = models.ImageField(null=True, blank=True)
+    profile = models.ImageField(upload_to='profile', null=True, blank=True)
     about = models.TextField(null=True, blank=True)
-    followers = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
 
