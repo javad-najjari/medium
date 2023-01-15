@@ -1,9 +1,7 @@
-import random, jwt
-from jwt.exceptions import ExpiredSignatureError, InvalidSignatureError
+import random
 from utils import reset_password, send_otp_code
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from django.conf import settings
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -229,7 +227,7 @@ class UserEditView(APIView):
         serializer = UserEditSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CreateBookMarkView(APIView):
