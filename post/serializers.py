@@ -15,6 +15,7 @@ class FileSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     files = serializers.SerializerMethodField()
     created = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -32,4 +33,7 @@ class PostSerializer(serializers.ModelSerializer):
         elapsed_time = datetime.utcnow() - obj.created.replace(tzinfo=None)
         seconds = int(elapsed_time.total_seconds())
         return get_time(seconds)
+    
+    def get_user(self, obj):
+        return obj.user.username
 
