@@ -20,13 +20,14 @@ from .serializers import (
 )
 
 
-
 class CustomTokenObtainPairView(TokenObtainPairView):
     """ using the custom serializer to login. we access user here """
+    
     serializer_class = CustomTokenObtainPairSerializer
 
 
 class HomeView(generics.ListAPIView):
+    """ display the posts of those you follow """
 
     queryset = Post.objects.all()
     serializer_class = PostSerializer
@@ -42,6 +43,7 @@ class GetAllUsersView(APIView):
 
 
 class GetUserView(APIView):
+
     def post(self, request):
 
         serializer = CreateUserSerializer(data=request.data)
@@ -315,25 +317,9 @@ class GetBookMarkListView(APIView):
 class GetPostListView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request, user_id):
-        user = get_object_or_404(User, id=user_id)
+    def get(self, request, username):
+        user = get_object_or_404(User, username=username)
         posts = user.posts.all()
         serializer = PostSerializer(posts, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-# class GetUserByTokenView(APIView):
-#     def post(self, request):
-#         raw_token = request.data['token']
-#         try:
-#             token = jwt.decode(raw_token, settings.SECRET_KEY, algorithms=['HS256'])
-#         except ExpiredSignatureError:
-#             return Response({'detail': 'token has been expired'}, status=status.HTTP_400_BAD_REQUEST)
-#         except InvalidSignatureError:
-#             return Response({'detail': 'token is not valid'}, status=status.HTTP_400_BAD_REQUEST)
-#
-#         user = User.objects.get(id=token['user_id'])
-#         serializer = UserDetailSerializer(user)
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#
-#

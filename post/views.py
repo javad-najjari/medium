@@ -21,16 +21,23 @@ class CreatePostView(APIView):
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        request.data._mutable = True
-        request.data['user'] = request.user.id
-        serializer = PostSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # request.data._mutable = True
+        # request.data['user'] = request.user.id
+        # serializer = PostSerializer(data=request.data)
+        # if serializer.is_valid():
+        #     serializer.save()
+        # else:
+        #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        data = request.data
+        post = Post.objects.create(
+            user = request.user, title = data.get('title', None),
+            tags = data.get('tags', None), description = data.get('description', None),
+            seo_title = data.get('seo_title', None), seo_description = data.get('seo_description', None)
+        )
 
         files = request.FILES.getlist('files')
-        post = Post.objects.last()
+        # post = Post.objects.last()
         for file in files:
             File.objects.create(file=file, post=post)
         return Response(status=status.HTTP_200_OK)

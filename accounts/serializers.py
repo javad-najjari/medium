@@ -78,6 +78,7 @@ class BookMarkSerializer(serializers.ModelSerializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """ customizing the serializer class to get my custom data after login. we have access to the 'user' here """
+    
     def validate(self, attrs):
         validated_data = super().validate(attrs)
         validated_data['user'] = UserDetailSerializer(self.user).data
