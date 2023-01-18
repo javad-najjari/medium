@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from post.models import Post
 from post.serializers import PostSerializer
 from .models import User, OtpCode, Follow, BookMark, BookMarkUser
-from .paginations import DefaultPagination
+from .paginations import DefaultPagination, UserPostsPagination
 from .serializers import (
         CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer,
         CustomTokenObtainPairSerializer
@@ -314,12 +314,13 @@ class GetBookMarkListView(APIView):
         return Response(serializer.data)
 
 
-class GetPostListView(APIView):
+class GetPostListView(generics.ListAPIView):
     permission_classes = (IsAuthenticated,)
+    serializer_class = PostSerializer
+    pagination_class = UserPostsPagination
 
-    def get(self, request, username):
-        user = get_object_or_404(User, username=username)
+    def get_queryset(self):
+        user = get_object_or_404(User, username=self.kwargs['username'])
         posts = user.posts.all()
-        serializer = PostSerializer(posts, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return posts
 
