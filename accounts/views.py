@@ -29,17 +29,21 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class HomeView(generics.ListAPIView):
     """ display the posts of those you follow """
 
-    queryset = Post.objects.all()
     serializer_class = PostSerializer
     pagination_class = DefaultPagination
 
+    def get_queryset(self):
+        auth_user = self.request.user
 
-class GetAllUsersView(APIView):
-
-    def get(self, request):
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if auth_user is not None:
+            my_objects = [user.to_user.posts.all() for user in auth_user.user_followings.all()]
+            final_posts = []
+            for posts in my_objects:
+                for post in posts:
+                    final_posts.append(post)
+            final_posts = sorted(final_posts, key=lambda x:x.created, reverse=True)
+            return final_posts
+        return Post.objects.all()
 
 
 class GetUserView(APIView):

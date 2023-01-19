@@ -46,12 +46,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
         return obj.user_followers.count()
     
     def get_is_following(self, obj):
-        auth_user = self.context['request'].user
-        if Follow.objects.filter(from_user=auth_user, to_user=obj).exists():
-            return True
-        elif auth_user == obj:
+        try:
+            auth_user = self.context['request'].user
+            if Follow.objects.filter(from_user=auth_user, to_user=obj).exists():
+                return True
+            elif auth_user == obj:
+                return None
+            return False
+        except:
             return None
-        return False
 
 
 class UserEditSerializer(serializers.ModelSerializer):
