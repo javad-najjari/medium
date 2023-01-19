@@ -37,7 +37,7 @@ class HomeView(generics.ListAPIView):
     def get_queryset(self):
         auth_user = self.request.user
 
-        if auth_user is not None:
+        try:
             my_objects = [user.to_user.posts.all() for user in auth_user.user_followings.all()]
             final_posts = []
             for posts in my_objects:
@@ -45,8 +45,8 @@ class HomeView(generics.ListAPIView):
                     final_posts.append(post)
             final_posts = sorted(final_posts, key=lambda x:x.created, reverse=True)
             return final_posts
-        
-        return Post.objects.all()
+        except AttributeError:
+            return Post.objects.all()
 
 
 class GetUserView(APIView):
