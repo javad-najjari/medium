@@ -9,7 +9,7 @@ urlpatterns = [
 
     path('login/', views.CustomTokenObtainPairView.as_view()),
     path('refresh/', TokenRefreshView.as_view()),
-    path('get_user/', views.GetUserView.as_view()),
+    path('get-user/', views.GetUserView.as_view()),
     path('register/', views.UserRegisterView.as_view()),
     path('forgot-password/', views.ForgotPasswordView.as_view()),
     path('reset-password/', views.ResetPasswordView.as_view()),
@@ -17,8 +17,8 @@ urlpatterns = [
     path('followers/', views.FollowersView.as_view()),
     path('follow/<int:user_id>/', views.UserFollowView.as_view()),
 
-    path('user_profile/<str:username>/', views.UserProfileView.as_view()),
-    path('user_edit/<str:username>/', views.UserEditView.as_view()),
+    path('user-profile/<str:username>/', views.UserProfileView.as_view()),
+    path('user-edit/<str:username>/', views.UserEditView.as_view()),
 
     path('create-bookmark/', views.CreateBookMarkView.as_view()),
     path('update-bookmark/<int:bookmark_id>/', views.UpdateBookMarkView.as_view()),
