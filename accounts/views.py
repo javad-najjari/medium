@@ -321,6 +321,22 @@ class GetPostListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = get_object_or_404(User, username=self.kwargs['username'])
-        posts = user.posts.all()
-        return posts
+        if user != self.request.user:
+            return user.posts.filter(status=True)
+        return user.posts.all()
+
+
+class UserFollowView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, user_id):
+        user = User.objects.get(id=user_id)
+        if Follow.objects.filter(from_user=request.user, to_user=user).exists():
+            Follow.objects.get(from_user=request.user, to_user=user).delete()
+            return Response({'message': 'follow removed'}, status=status.HTTP_200_OK)
+        else:
+            if user == request.user:
+                return Response({'message': 'you can not follow yourself'}, status=status.HTTP_400_BAD_REQUEST)
+            Follow.objects.create(from_user=request.user, to_user=user)
+            return Response({'message': 'follow created'}, status=status.HTTP_200_OK)
 

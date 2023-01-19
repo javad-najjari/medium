@@ -10,9 +10,12 @@ from .models import Post, File
 
 
 class GetPostView(APIView):
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request, post_id):
         post = get_object_or_404(Post, pk=post_id)
+        if post.user != request.user and not post.status:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         serializer = PostSerializer(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

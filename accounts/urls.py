@@ -17,6 +17,7 @@ urlpatterns = [
     path('reset-password/', views.ResetPasswordView.as_view()),
     path('followings/', views.FollowingsView.as_view()),
     path('followers/', views.FollowersView.as_view()),
+    path('follow/<int:user_id>/', views.UserFollowView.as_view()),
 
     path('user_profile/<str:username>/', views.UserProfileView.as_view()),
     path('user_edit/<str:username>/', views.UserEditView.as_view()),

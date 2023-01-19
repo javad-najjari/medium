@@ -13,6 +13,7 @@ class Post(models.Model):
     description = models.TextField(null=True, blank=True)
     seo_title = models.CharField(max_length=255, null=True, blank=True)
     seo_description = models.CharField(max_length=255, null=True, blank=True)
+    status = models.BooleanField(default=True)
     created = models.DateTimeField(auto_now_add=True)
 
     def get_description(self):
