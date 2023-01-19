@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, BookMark, BookMarkUser
+from .models import User, BookMark, BookMarkUser, Follow
 from post.serializers import PostSerializer
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -36,13 +36,22 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     followers = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'name', 'family', 'username', 'skills', 'email', 'profile', 'about', 'followers')
+        fields = ('is_following', 'id', 'name', 'family', 'username', 'skills', 'email', 'profile', 'about', 'followers')
     
     def get_followers(self, obj):
         return obj.user_followers.count()
+    
+    def get_is_following(self, obj):
+        auth_user = self.context['request'].user
+        if Follow.objects.filter(from_user=auth_user, to_user=obj).exists():
+            return True
+        elif auth_user == obj:
+            return None
+        return False
 
 
 class UserEditSerializer(serializers.ModelSerializer):
