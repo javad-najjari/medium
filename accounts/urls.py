@@ -12,7 +12,6 @@ urlpatterns = [
     path('get_user/', views.GetUserView.as_view()),
     path('register/', views.UserRegisterView.as_view()),
     path('forgot-password/', views.ForgotPasswordView.as_view()),
-    path('check-code/', views.CheckCodeView.as_view()),
     path('reset-password/', views.ResetPasswordView.as_view()),
     path('followings/', views.FollowingsView.as_view()),
     path('followers/', views.FollowersView.as_view()),

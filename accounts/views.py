@@ -21,14 +21,16 @@ from .serializers import (
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """ using the custom serializer to login. we access user here """
-    
+    """
+    Using the custom serializer to login. We access user here.
+    """
     serializer_class = CustomTokenObtainPairSerializer
 
 
 class HomeView(generics.ListAPIView):
-    """ display the posts of those you follow """
-
+    """
+    Display the posts of those you follow.
+    """
     serializer_class = PostSerializer
     pagination_class = DefaultPagination
 
@@ -43,16 +45,18 @@ class HomeView(generics.ListAPIView):
                     final_posts.append(post)
             final_posts = sorted(final_posts, key=lambda x:x.created, reverse=True)
             return final_posts
+        
         return Post.objects.all()
 
 
 class GetUserView(APIView):
-
+    """
+    Get user information and send confirmation code.
+    """
     def post(self, request):
-
         serializer = CreateUserSerializer(data=request.data)
+
         if serializer.is_valid():
-            
             random_code = random.randint(100000, 999999)
             OtpCode.objects.create(email=serializer.validated_data['email'], code=random_code)
             send_otp_code(serializer.validated_data['email'], random_code)
@@ -63,52 +67,57 @@ class GetUserView(APIView):
                 'email': serializer.validated_data['email'],
                 'password': serializer.validated_data['password']
             }
+            return Response({'detail': 'We have sent you a code.'}, status=status.HTTP_200_OK)
 
-            return Response(status=status.HTTP_200_OK)
+        try:
+            value = serializer.data
+            username_exists = User.objects.filter(username=value['username']).exists()
+            email_exists = User.objects.filter(email=value['email']).exists()
 
-        value = serializer.data
+            if username_exists or email_exists:
+                return Response({'detail': 'Username or email already exists.'}, status=status.HTTP_409_CONFLICT)
 
-        username_exists = User.objects.filter(username=value['username']).exists()
-        email_exists = User.objects.filter(email=value['email']).exists()
-
-        if username_exists or email_exists:
-            return Response(status=status.HTTP_409_CONFLICT)
-
-        if value['password'] != value['password2']:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            if value['password'] != value['password2']:
+                return Response({'detail': 'Passwords does not match.'}, status=status.HTTP_401_UNAUTHORIZED)
+                
+        except KeyError:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserRegisterView(APIView):
+    """
+    Receive verification code and register the user.
+    """
     def post(self, request):
-
         try:
-            # if it is requested through postman
-            # user information is stored in sessions
             data = request.session['user_registration_info']
             code = request.data['code']
-            del request.session['user_registration_info']
-        except:
-            # if it is requested through frontend
-            # The frontend should send the user information (in body) that it got from the previous endpoint
-            data = request.data['data']
-            code = request.data['data']['code']
+        except KeyError:
+            try:
+                data = request.data['data']
+                code = request.data['data']['code']
+            except KeyError:
+                return Response(
+                    {'detail': 'Sessions and body are destroyed.'}, status=status.HTTP_400_BAD_REQUEST
+                )
         
-        otp_code = OtpCode.objects.filter(email=data['email'], code=code).first()
-        if otp_code is None:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        if OtpCode.objects.filter(email=data['email'], code=code).exists():
+            otp_code = OtpCode.objects.get(email=data['email'], code=code)
+        else:
+            return Response({'detail': 'The code is wrong.'}, status=status.HTTP_404_NOT_FOUND)
         
-        elapsed_time = timezone.now() - otp_code.created
-        if elapsed_time.seconds > 180:
+        if (timezone.now() - otp_code.created).seconds > 300:
             otp_code.delete()
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            del request.session['user_registration_info']
+            return Response({'detail': 'The code has expired.'}, status=status.HTTP_404_NOT_FOUND)
 
         user = User.objects.create_user(
             username=data['username'], email=data['email'], password=data['password']
         )
-        
+
+        del request.session['user_registration_info']
         otp_code.delete()
+
         tokens = {
             'refresh': str(TokenObtainPairSerializer().get_token(user)),
             'access': str(AccessToken().for_user(user))
@@ -117,76 +126,80 @@ class UserRegisterView(APIView):
 
 
 class ForgotPasswordView(APIView):
+    """
+    Receive an email to recover the user's password.
+    """
     def post(self, request):
-
-        email = request.data['email']
+        try:
+            email = request.data['email']
+        except KeyError:
+            return Response({'detail': '`email` field is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not User.objects.filter(email=email).exists():
-            return Response({'detail': 'there is no user with this email'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'There is no user with this email.'}, status=status.HTTP_404_NOT_FOUND)
         
         random_code = random.randint(100000, 999999)
         OtpCode.objects.create(email=email, code=random_code)
         reset_password(email, random_code)
 
-        request.session['user_reset_password'] = {
-            'email': email,
-        }
-        return Response({'detail': f'the code was sent to this email: {email}'}, status=status.HTTP_200_OK)
-
-
-class CheckCodeView(APIView):
-    def post(self, request):
-        code = request.data['code']
-
-        try:
-            email = request.session['user_reset_password']['email']
-        except:
-            email = request.data['email']
-        
-        otp_code = OtpCode.objects.filter(email=email, code=code).first()
-        if otp_code is None:
-            return Response({'detail': 'the code is wrong'}, status=status.HTTP_404_NOT_FOUND)
-        
-        elapsed_time = timezone.now() - otp_code.created
-        if elapsed_time.seconds > 180:
-            otp_code.delete()
-            return Response({'detail': 'the code has expired'}, status=status.HTTP_404_NOT_FOUND)
-        
-        return Response({'detail': 'ok. now you can change your password'}, status=status.HTTP_200_OK)
+        request.session['user_reset_password'] = {'email': email}
+        return Response({'detail': f'The code was sent to this email: {email}'}, status=status.HTTP_200_OK)
 
 
 class ResetPasswordView(APIView):
+    """
+    Receive confirmation code and new user password to change his(her) password.
+    """
     def post(self, request):
         try:
             email = request.session['user_reset_password']['email']
         except:
-            email = request.data['email']
+            try:
+                email = request.data['email']
+            except KeyError:
+                return Response(
+                    {'detail': 'Sessions and body are destroyed.'}, status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        try:
+            code = request.data['code']
+            password = request.data['password']
+            password2 = request.data['password2']
+        except KeyError:
+            return Response(
+                {'detail': 'These fields are required: {code, password, password2}'}, status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if OtpCode.objects.filter(email=email, code=code).exists():
+            otp_code = OtpCode.objects.get(email=email, code=code)
+        else:
+            return Response({'detail': 'The code is wrong.'}, status=status.HTTP_404_NOT_FOUND)
+
+        elapsed_time = timezone.now() - otp_code.created
+
+        if elapsed_time.seconds > 300:
+            try:
+                del request.session['user_reset_password']
+            except:
+                pass
+            otp_code.delete()
+            return Response({'detail': 'The code has expired.'}, status=status.HTTP_404_NOT_FOUND)
         
         user = get_object_or_404(User, email=email)
 
-        password = request.data['password']
-        password2 = request.data['password2']
-
         if password != password2:
-            return Response({'detail': 'passwords does not match'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'Passwords does not match'}, status=status.HTTP_401_UNAUTHORIZED)
         
         user.set_password(password)
         user.save()
+
         try:
             del request.session['user_reset_password']
         except:
             pass
+
+        otp_code.delete()
         return Response({'detail': 'password changed successfully'}, status=status.HTTP_200_OK)
-
-
-class FollowView(APIView):
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request, user_id):
-        from_user = request.user
-        to_user = get_object_or_404(User, pk=id)
-        Follow.objects.create(from_user=from_user, to_user=to_user)
-        return Response(status=status.HTTP_200_OK)
 
 
 class FollowingsView(APIView):
