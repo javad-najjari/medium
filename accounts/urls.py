@@ -18,7 +18,7 @@ urlpatterns = [
     path('follow/<int:user_id>/', views.UserFollowView.as_view()),
 
     path('user-profile/<str:username>/', views.UserProfileView.as_view()),
-    path('user-edit/<str:username>/', views.UserEditView.as_view()),
+    path('user-edit/', views.UserEditView.as_view()),
 
     path('create-bookmark/', views.CreateBookMarkView.as_view()),
     path('update-bookmark/<int:bookmark_id>/', views.UpdateBookMarkView.as_view()),
@@ -30,4 +30,6 @@ urlpatterns = [
     path('get-bookmark-list/', views.GetBookMarkListView.as_view()),
 
     path('user-posts/<str:username>/', views.GetPostListView.as_view()),
+
+    path('all-users/', views.AllUsersView.as_view()),
 ]

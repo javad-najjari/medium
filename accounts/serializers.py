@@ -23,7 +23,9 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if data['password'] != data['password2']:
-            raise serializers.ValidationError('passwords must match')
+            raise serializers.ValidationError('Passwords must match')
+        if not 8 <= len(data['password']) <= 32:
+            raise serializers.ValidationError('The length of the password must be between 8 and 32 characters')
         return data
 
 
@@ -31,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'profile')
+        fields = ('username', 'profile')
 
 
 class UserDetailSerializer(serializers.ModelSerializer):
@@ -40,7 +42,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('is_following', 'id', 'name', 'family', 'username', 'skills', 'email', 'profile', 'about', 'followers')
+        fields = ('is_following', 'id', 'name', 'username', 'skills', 'profile', 'about', 'followers')
     
     def get_followers(self, obj):
         return obj.user_followers.count()
@@ -61,7 +63,7 @@ class UserEditSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('name', 'family', 'skills', 'profile', 'about')
+        fields = ('name', 'family', 'username', 'skills', 'profile', 'about')
 
 
 class BookMarkSerializer(serializers.ModelSerializer):

@@ -1,5 +1,5 @@
 import random
-from utils import reset_password, send_otp_code
+from utils import reset_password, send_otp_code, OTP_CODE_VALID_SECONDS
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from post.models import Post
 from post.serializers import PostSerializer
 from .models import User, OtpCode, Follow, BookMark, BookMarkUser
-from .paginations import DefaultPagination, UserPostsPagination
+from .paginations import DefaultPagination, UserPostsPagination, UserFollowPagination
 from .serializers import (
         CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer,
         CustomTokenObtainPairSerializer
@@ -106,7 +106,7 @@ class UserRegisterView(APIView):
         else:
             return Response({'detail': 'The code is wrong.'}, status=status.HTTP_404_NOT_FOUND)
         
-        if (timezone.now() - otp_code.created).seconds > 300:
+        if (timezone.now() - otp_code.created).seconds > OTP_CODE_VALID_SECONDS:
             otp_code.delete()
             del request.session['user_registration_info']
             return Response({'detail': 'The code has expired.'}, status=status.HTTP_404_NOT_FOUND)
@@ -177,7 +177,7 @@ class ResetPasswordView(APIView):
 
         elapsed_time = timezone.now() - otp_code.created
 
-        if elapsed_time.seconds > 300:
+        if elapsed_time.seconds > OTP_CODE_VALID_SECONDS:
             try:
                 del request.session['user_reset_password']
             except:
@@ -185,10 +185,17 @@ class ResetPasswordView(APIView):
             otp_code.delete()
             return Response({'detail': 'The code has expired.'}, status=status.HTTP_404_NOT_FOUND)
         
-        user = get_object_or_404(User, email=email)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this email.'}, status=status.HTTP_404_NOT_FOUND)
 
         if password != password2:
-            return Response({'detail': 'Passwords does not match'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'Passwords does not match.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not 8 <= len(password) <= 32:
+            return  Response(
+                {'detail': 'The length of the password must be between 8 and 32 characters.'}, status=status.HTTP_400_BAD_REQUEST
+            )
         
         user.set_password(password)
         user.save()
@@ -199,51 +206,74 @@ class ResetPasswordView(APIView):
             pass
 
         otp_code.delete()
-        return Response({'detail': 'password changed successfully'}, status=status.HTTP_200_OK)
+        return Response({'detail': 'password changed successfully.'}, status=status.HTTP_200_OK)
 
 
-class FollowingsView(APIView):
+class UserFollowView(APIView):
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request):
-        user = request.user
-        users = []
-        followings = user.user_followings.all()
-        for follow in followings:
-            users.append(follow.to_user)
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def post(self, request, user_id):
+        user = User.objects.get(id=user_id)
+        if Follow.objects.filter(from_user=request.user, to_user=user).exists():
+            Follow.objects.get(from_user=request.user, to_user=user).delete()
+            return Response({'message': 'follow removed'}, status=status.HTTP_200_OK)
+        else:
+            if user == request.user:
+                return Response({'message': 'you can not follow yourself'}, status=status.HTTP_400_BAD_REQUEST)
+            Follow.objects.create(from_user=request.user, to_user=user)
+            return Response({'message': 'follow created'}, status=status.HTTP_200_OK)
 
 
-class FollowersView(APIView):
+class FollowingsView(generics.ListAPIView):
+    """
+    User followings list.
+    """
     permission_classes = (IsAuthenticated,)
+    serializer_class = UserSerializer
+    pagination_class = UserFollowPagination
 
-    def get(self, request):
-        user = request.user
-        users = []
-        followings = user.user_followers.all()
-        for follow in followings:
-            users.append(follow.from_user)
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        followings = self.request.user.user_followings.all()
+        users = [follow.to_user for follow in followings]
+        return users
+
+
+class FollowersView(generics.ListAPIView):
+    """
+    User followers list.
+    """
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UserSerializer
+    pagination_class = UserFollowPagination
+
+    def get_queryset(self):
+        followers = self.request.user.user_followers.all()
+        users = [follow.from_user for follow in followers]
+        return users
 
 
 class UserProfileView(APIView):
-
+    """
+    Get the username and view the desired user's profile.
+    """
     def get(self, request, username):
-        user = get_object_or_404(User, username=username)
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this username.'}, status=status.HTTP_404_NOT_FOUND)
+            
         serializer = UserDetailSerializer(user, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserEditView(APIView):
+    """
+    Edit user information.
+    """
     permission_classes = (IsAuthenticated,)
 
-    def put(self, request, username):
-        user = get_object_or_404(User, username=username)
-        if request.user != user:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        serializer = UserEditSerializer(user, data=request.data, partial=True)
+    def put(self, request):
+        serializer = UserEditSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -343,17 +373,9 @@ class GetPostListView(generics.ListAPIView):
         return user.posts.all()
 
 
-class UserFollowView(APIView):
-    permission_classes = (IsAuthenticated,)
 
-    def post(self, request, user_id):
-        user = User.objects.get(id=user_id)
-        if Follow.objects.filter(from_user=request.user, to_user=user).exists():
-            Follow.objects.get(from_user=request.user, to_user=user).delete()
-            return Response({'message': 'follow removed'}, status=status.HTTP_200_OK)
-        else:
-            if user == request.user:
-                return Response({'message': 'you can not follow yourself'}, status=status.HTTP_400_BAD_REQUEST)
-            Follow.objects.create(from_user=request.user, to_user=user)
-            return Response({'message': 'follow created'}, status=status.HTTP_200_OK)
+# tomprary view
+class AllUsersView(generics.ListAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserDetailSerializer
 

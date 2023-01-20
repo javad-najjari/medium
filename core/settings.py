@@ -145,14 +145,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 CORS_ORIGIN_ALLOW_ALL = True
-# CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOW_CREDENTIALS = True   # frontend can get the cookies
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:3000',
-# ]
-# CORS_ALLOWED_ORIGIN_REGEXES = [
-#     'http://localhost:3000',
-# ]
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=2),
@@ -168,11 +161,9 @@ REST_FRAMEWORK = {
 
 # CACHES = {
 #     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
-#         "LOCATION": "redis://127.0.0.1:6379/1",
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         }
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#         "LOCATION": "redis://127.0.0.1:6379/",
 #     }
 # }
 
+# SESSION_ENGINE = 'django.contrib.sessions.backends.cache'

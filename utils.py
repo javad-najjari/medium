@@ -7,6 +7,7 @@ EMAIL_PORT_SSL = 465
 EMAIL_HOST_PASSWORD = 'cvveluwegjiaenal'
 DEFAULT_FROM_EMAIL = 'pinterest'
 
+OTP_CODE_VALID_SECONDS = 300
 
 
 def send_otp_code(email, code):
