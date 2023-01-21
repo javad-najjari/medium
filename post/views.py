@@ -2,71 +2,88 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from django.shortcuts import get_object_or_404
-from .serializers import PostSerializer
+from .serializers import PostDetailSerializer
 from .models import Post, File
 
 
 
 
 class GetPostView(APIView):
+    """
+    Getting the id and displaying the complete information of the post.
+    """
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, post_id):
-        post = get_object_or_404(Post, pk=post_id)
-        if post.user != request.user and not post.status:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        serializer = PostSerializer(post)
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'There is no post with this id.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if post.user != request.user and not post.status == True:
+            return Response({'detail': 'You are not the owner and the post cannot be displayed.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        serializer = PostDetailSerializer(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CreatePostView(APIView):
+    """
+    Create a post by taking some fields.
+    """
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        # request.data._mutable = True
-        # request.data['user'] = request.user.id
-        # serializer = PostSerializer(data=request.data)
-        # if serializer.is_valid():
-        #     serializer.save()
-        # else:
-        #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        data = request.data
-        post = Post.objects.create(
-            user = request.user, title = data.get('title', None),
-            tags = data.get('tags', None), description = data.get('description', None),
-            seo_title = data.get('seo_title', None), seo_description = data.get('seo_description', None)
-        )
+        serializer = PostDetailSerializer(data=request.data, context={'user': request.user})
 
         files = request.FILES.getlist('files')
-        # post = Post.objects.last()
+        if len(files) == 0:
+            return Response({'detail': 'You must add at least one file.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer.is_valid(raise_exception=True)
+        post = serializer.save()
+        
         for file in files:
             File.objects.create(file=file, post=post)
-        return Response(status=status.HTTP_200_OK)
+        return Response({'detail': 'Post created successfully.'}, status=status.HTTP_200_OK)
 
 
 class DeletePostView(APIView):
+    """
+    Get id and delete post.
+    """
     permission_classes = (IsAuthenticated,)
 
     def delete(self, request, post_id):
-        user = request.user
-        post = get_object_or_404(Post, pk=post_id)
-        if post.user == user:
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'There is no post with this id.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if post.user == request.user:
             post.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Post deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+
+        return Response({'detail': 'You are not the creator of this post.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class UpdatePostView(APIView):
+    """
+    Get the new values and update the post.
+    """
     permission_classes = (IsAuthenticated,)
 
     def put(self, request, post_id):
-        post = get_object_or_404(Post, pk=post_id)
-        serializer = PostSerializer(post, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': 'There is no post with this id.'}, status=status.HTTP_404_NOT_FOUND)
 
+        if post.user != request.user:
+            return Response({'detail': 'You are not the creator of this post.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        serializer = PostDetailSerializer(post, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Changes applied successfully.'}, status=status.HTTP_200_OK)
 

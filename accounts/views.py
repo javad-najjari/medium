@@ -1,7 +1,6 @@
 import random
 from utils import reset_password, send_otp_code, OTP_CODE_VALID_SECONDS
 from django.utils import timezone
-from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,10 +12,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from post.models import Post
 from post.serializers import PostSerializer
 from .models import User, OtpCode, Follow, BookMark, BookMarkUser
-from .paginations import DefaultPagination, UserPostsPagination, UserFollowPagination
+from .paginations import DefaultPagination, UserPostsPagination, UserFollowPagination, BookMarkListPagination
 from .serializers import (
-        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkSerializer, UserSerializer,
-        CustomTokenObtainPairSerializer
+        CreateUserSerializer, UserDetailSerializer, UserEditSerializer, BookMarkDetailSerializer, UserSerializer,
+        CustomTokenObtainPairSerializer, BookMarkSerializer
 )
 
 
@@ -210,30 +209,43 @@ class ResetPasswordView(APIView):
 
 
 class UserFollowView(APIView):
+    """
+    Get the user id and follow that user.
+    """
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, user_id):
-        user = User.objects.get(id=user_id)
-        if Follow.objects.filter(from_user=request.user, to_user=user).exists():
-            Follow.objects.get(from_user=request.user, to_user=user).delete()
-            return Response({'message': 'follow removed'}, status=status.HTTP_200_OK)
-        else:
-            if user == request.user:
-                return Response({'message': 'you can not follow yourself'}, status=status.HTTP_400_BAD_REQUEST)
-            Follow.objects.create(from_user=request.user, to_user=user)
-            return Response({'message': 'follow created'}, status=status.HTTP_200_OK)
+        follow = Follow.objects.filter(from_user=request.user, to_user__id=user_id)
+        if follow.exists():
+            follow.delete()
+            return Response({'detail': 'Unfollowed.'}, status=status.HTTP_200_OK)
+        
+        if request.user.id == user_id:
+            return Response({'detail': 'You can not follow yourself.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this id.'}, status=status.HTTP_404_NOT_FOUND)
+
+        Follow.objects.create(from_user=request.user, to_user=user)
+        return Response({'detail': 'Followed.'}, status=status.HTTP_200_OK)
 
 
 class FollowingsView(generics.ListAPIView):
     """
     User followings list.
     """
-    permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
     pagination_class = UserFollowPagination
 
     def get_queryset(self):
-        followings = self.request.user.user_followings.all()
+        try:
+            user = User.objects.get(username=self.kwargs['username'])
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this username.'}, status=status.HTTP_404_NOT_FOUND)
+
+        followings = user.user_followings.all()
         users = [follow.to_user for follow in followings]
         return users
 
@@ -242,12 +254,16 @@ class FollowersView(generics.ListAPIView):
     """
     User followers list.
     """
-    permission_classes = (IsAuthenticated,)
     serializer_class = UserSerializer
     pagination_class = UserFollowPagination
 
     def get_queryset(self):
-        followers = self.request.user.user_followers.all()
+        try:
+            user = User.objects.get(username=self.kwargs['username'])
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this username.'}, status=status.HTTP_404_NOT_FOUND)
+
+        followers = user.user_followers.all()
         users = [follow.from_user for follow in followers]
         return users
 
@@ -280,97 +296,168 @@ class UserEditView(APIView):
 
 
 class CreateBookMarkView(APIView):
+    """
+    Get the title and create a bookmark.
+    """
     permission_classes = (IsAuthenticated,)
 
     def post(self, request):
-        data = request.data
-        BookMark.objects.create(
-            title = data['title'], user = request.user
-        )
-        return Response(status=status.HTTP_200_OK)
+        try:
+            book_mark = BookMark.objects.create(
+                title = request.data['title'],
+                user = request.user
+            )
+            return Response(BookMarkSerializer(book_mark).data, status=status.HTTP_200_OK)
+        except KeyError:
+            return Response({'detail': '`title` field is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UpdateBookMarkView(APIView):
+    """
+    Get the title and edit the bookmark.
+    """
     permission_classes = (IsAuthenticated,)
 
     def put(self, request, bookmark_id):
-        book_mark = get_object_or_404(BookMark, id=bookmark_id)
+        try:
+            book_mark = BookMark.objects.get(id=bookmark_id)
+        except BookMark.DoesNotExist:
+            return Response({'detail': 'There is no Bookmark with this id.'}, status=status.HTTP_404_NOT_FOUND)
+            
         if request.user != book_mark.user:
             return Response(
-                {'detail': 'you are not the creator of this bookmark'},
+                {'detail': 'You are not the creator of this bookmark.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        title = request.data['title']
-        book_mark.title = title
+
+        try:
+            book_mark.title = request.data['title']
+        except KeyError:
+            return Response({'detail': '`title` field is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
         book_mark.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response(BookMarkSerializer(book_mark).data, status=status.HTTP_200_OK)
 
 
 class DeleteBookMarkView(APIView):
+    """
+    Get the id and delete the bookmark.
+    """
     permission_classes = (IsAuthenticated,)
 
     def delete(self, request, bookmark_id):
-        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
+        try:
+            book_mark = BookMark.objects.get(id=bookmark_id)
+        except BookMark.DoesNotExist:
+            return Response({'detail': 'There is no Bookmark with this id '})
+
         if book_mark.user != request.user:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {'detail': 'You are not the creator of this bookmark.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
         book_mark.delete()
-        return Response(status=status.HTTP_200_OK)
+        return Response(BookMarkSerializer(book_mark).data, status=status.HTTP_204_NO_CONTENT)
 
 
 class CreateBookMarkUserView(APIView):
+    """
+    Get the `bookmark id` and `post id`, then add the post to the bookmark.
+    """
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, bookmark_id, post_id):
-        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
-        post = get_object_or_404(Post, pk=post_id)
+        try:
+            book_mark = BookMark.objects.get(id=bookmark_id)
+        except BookMark.DoesNotExist:
+            return Response({'detail': f'There is no bookmark with this id : {bookmark_id}.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'detail': f'There is no post with this id : {post_id}.'}, status=status.HTTP_404_NOT_FOUND)
+
         if not BookMarkUser.objects.filter(book_mark=book_mark, post=post).exists():
             if book_mark.user != request.user:
-                return Response(status=status.HTTP_401_UNAUTHORIZED)
+                return Response({'detail': 'You are not the creator of this bookmark.'}, status=status.HTTP_401_UNAUTHORIZED)
+                
             BookMarkUser.objects.create(book_mark=book_mark, post=post)
-            return Response(status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': f'post `{post.title}` added to bookmark `{book_mark.title}` successfully.'}, status=status.HTTP_200_OK)
+        return Response({'detail': 'The post already exists in this bookmark.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeleteBookMarkUserView(APIView):
+    """
+    Get the bookmarkuser id and delete it (remove post from bookmark).
+    """
     permission_classes = (IsAuthenticated,)
 
     def delete(self, request, bookmarkuser_id):
-        book_mark_user = get_object_or_404(BookMarkUser, pk=bookmarkuser_id)
+        try:
+            book_mark_user = BookMarkUser.objects.get(id=bookmarkuser_id)
+        except BookMarkUser.DoesNotExist:
+            return Response({'detail': 'The post does not already exist in the bookmark.'}, status=status.HTTP_404_NOT_FOUND)
+
         if book_mark_user.book_mark.user != request.user:
-            return Response(status.status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': 'You are not the creator of this bookmark.'}, status=status.HTTP_401_UNAUTHORIZED)
+            
         book_mark_user.delete()
-        return Response(status=status.HTTP_200_OK)
+        return Response({'detail': 'The post has been successfully removed from the bookmark.'}, status=status.HTTP_204_NO_CONTENT)
 
 
 class GetBookMarkView(APIView):
+    """
+    Get id and show bookmark.
+    """
     permission_classes = (IsAuthenticated,)
     
     def get(self, request, bookmark_id):
-        book_mark = get_object_or_404(BookMark, pk=bookmark_id)
-        serializer = BookMarkSerializer(book_mark)
-        return Response(serializer.data)
+        try:
+            book_mark = BookMark.objects.get(id=bookmark_id)
+        except BookMark.DoesNotExist:
+            return Response({'detail': 'There is no bookmark with this id.'}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = BookMarkDetailSerializer(book_mark)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetBookMarkListView(APIView):
+class GetBookMarkListView(generics.ListAPIView):
+    """
+    Get the list of user bookmarks.
+    """
     permission_classes = (IsAuthenticated,)
+    serializer_class = BookMarkSerializer
+    pagination_class = BookMarkListPagination
 
-    def get(self, request):
-        user = request.user
+    def get_queryset(self):
+        user = self.request.user
         book_marks = BookMark.objects.filter(user=user)
-        serializer = BookMarkSerializer(book_marks, many=True)
-        return Response(serializer.data)
+        return book_marks
 
 
 class GetPostListView(generics.ListAPIView):
+    """
+    Get the list of user post.
+    """
     permission_classes = (IsAuthenticated,)
     serializer_class = PostSerializer
     pagination_class = UserPostsPagination
 
-    def get_queryset(self):
-        user = get_object_or_404(User, username=self.kwargs['username'])
-        if user != self.request.user:
-            return user.posts.filter(status=True)
-        return user.posts.all()
+    def list(self, request, *args, **kwargs):
+        try:
+            user = User.objects.get(username=self.kwargs['username'])
+        except User.DoesNotExist:
+            return Response({'detail': 'There is no user with this id.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if user != request.user:
+            page = self.paginate_queryset(user.posts.filter(status=True))
+        else:
+            page = self.paginate_queryset(user.posts.all())
+
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
+
 
 
 

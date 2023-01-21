@@ -13,8 +13,8 @@ urlpatterns = [
     path('register/', views.UserRegisterView.as_view()),
     path('forgot-password/', views.ForgotPasswordView.as_view()),
     path('reset-password/', views.ResetPasswordView.as_view()),
-    path('followings/', views.FollowingsView.as_view()),
-    path('followers/', views.FollowersView.as_view()),
+    path('followings/<str:username>/', views.FollowingsView.as_view()),
+    path('followers/<str:username>/', views.FollowersView.as_view()),
     path('follow/<int:user_id>/', views.UserFollowView.as_view()),
 
     path('user-profile/<str:username>/', views.UserProfileView.as_view()),

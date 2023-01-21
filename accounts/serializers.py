@@ -6,6 +6,9 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
+    """
+    A serializer to create a new user.
+    """
     password2 = serializers.CharField(required=True, write_only=True)
 
     class Meta:
@@ -30,13 +33,33 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    A serializer to show `username` and user `profile`.
+    """
 
     class Meta:
         model = User
         fields = ('username', 'profile')
 
 
+class UserNameProfileSerializer(serializers.ModelSerializer):
+    """
+    A serializer to show `name` (or `username` if there is no name) and user `profile`.
+    """
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('name', 'profile')
+    
+    def get_name(self, obj):
+        return obj.name or obj.username
+
+
 class UserDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer related to getting all user information.
+    """
     followers = serializers.SerializerMethodField()
     is_following = serializers.SerializerMethodField()
 
@@ -60,26 +83,24 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 
 class UserEditSerializer(serializers.ModelSerializer):
+    """
+    Serializer related to user editing.
+    """
 
     class Meta:
         model = User
         fields = ('name', 'family', 'username', 'skills', 'profile', 'about')
 
 
-class BookMarkSerializer(serializers.ModelSerializer):
+class BookMarkDetailSerializer(serializers.ModelSerializer):
+    """
+    Serializer related to getting all bookmark information.
+    """
     posts = serializers.SerializerMethodField()
 
     class Meta:
         model = BookMark
         fields = ('id', 'title', 'posts')
-    
-    def get_users(self, obj):
-        bookmark_users = BookMarkUser.objects.filter(book_mark=obj)
-        users = []
-        for bookmark_user in bookmark_users:
-            users.append(bookmark_user.user)
-        serializer = UserSerializer(users, many=True)
-        return serializer.data
     
     def get_posts(self, obj):
         bookmark_posts = BookMarkUser.objects.filter(book_mark=obj)
@@ -90,13 +111,23 @@ class BookMarkSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
+class BookMarkSerializer(serializers.ModelSerializer):
+    """
+    Serializer related to getting `id` and `title` of a bookmark.
+    """
+
+    class Meta:
+        model = BookMark
+        fields = ('id', 'title')
+    
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """ customizing the serializer class to get my custom data after login. we have access to the 'user' here """
+    """
+    Customizing the serializer class to get my custom data after login. We have access to the 'user' here.
+    """
     
     def validate(self, attrs):
         validated_data = super().validate(attrs)
         validated_data['user'] = UserDetailSerializer(self.user).data
         return validated_data
-
-
 
