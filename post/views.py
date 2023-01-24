@@ -12,7 +12,7 @@ class GetPostView(APIView):
     """
     Getting the id and displaying the complete information of the post.
     """
-    permission_classes = (IsAuthenticated,)
+    # permission_classes = (IsAuthenticated,)
 
     def get(self, request, post_id):
         try:
@@ -20,8 +20,8 @@ class GetPostView(APIView):
         except Post.DoesNotExist:
             return Response({'detail': 'There is no post with this id.'}, status=status.HTTP_404_NOT_FOUND)
         
-        if post.user != request.user and not post.status == True:
-            return Response({'detail': 'You are not the owner and the post cannot be displayed.'}, status=status.HTTP_401_UNAUTHORIZED)
+        # if post.user != request.user and not post.status == True:
+        #     return Response({'detail': 'You are not the owner and the post cannot be displayed.'}, status=status.HTTP_401_UNAUTHORIZED)
         
         serializer = PostDetailSerializer(post)
         return Response(serializer.data, status=status.HTTP_200_OK)
