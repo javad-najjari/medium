@@ -107,14 +107,20 @@ class UserRegisterView(APIView):
         
         if (timezone.now() - otp_code.created).seconds > OTP_CODE_VALID_SECONDS:
             otp_code.delete()
-            del request.session['user_registration_info']
+            try:
+                del request.session['user_registration_info']
+            except KeyError:
+                pass
             return Response({'detail': 'The code has expired.'}, status=status.HTTP_404_NOT_FOUND)
 
         user = User.objects.create_user(
             username=data['username'], email=data['email'], password=data['password']
         )
 
-        del request.session['user_registration_info']
+        try:
+            del request.session['user_registration_info']
+        except KeyError:
+            pass
         otp_code.delete()
 
         tokens = {
