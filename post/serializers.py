@@ -91,9 +91,11 @@ class PostSerializer(serializers.ModelSerializer):
         return UserNameProfileSerializer(obj.user).data
     
     def get_description(self, obj):
-        if len(obj.description) > 30:
-            return obj.description[:30] + ' ...'
-        return obj.description
+        if obj.description:
+            if len(obj.description) > 30:
+                return obj.description[:30] + ' ...'
+            return obj.description
+        return None
 
 
 
