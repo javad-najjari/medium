@@ -53,10 +53,10 @@ class PostDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'description': 'The length of the description should not be more than 350 characters.'})
         if 'tags' in attrs and ' ' in attrs['tags']:
             raise serializers.ValidationError({'tags': 'Tags must not contain spaces.'})
-        if 'seo_title' in attrs and ' ' in attrs['seo_title']:
-            raise serializers.ValidationError({'seo_title': 'seo_title must not contain spaces.'})
-        if 'seo_description' in attrs and ' ' in attrs['seo_description']:
-            raise serializers.ValidationError({'seo_description': 'seo_description must not contain spaces.'})
+        # if 'seo_title' in attrs and ' ' in attrs['seo_title']:
+        #     raise serializers.ValidationError({'seo_title': 'seo_title must not contain spaces.'})
+        # if 'seo_description' in attrs and ' ' in attrs['seo_description']:
+        #     raise serializers.ValidationError({'seo_description': 'seo_description must not contain spaces.'})
         
         return super().validate(attrs)
 
