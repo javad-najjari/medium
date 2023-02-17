@@ -25,6 +25,7 @@ urlpatterns = [
     path('delete-bookmark/<int:bookmark_id>/', views.DeleteBookMarkView.as_view()),
     path('create-bookmarkuser/<int:bookmark_id>/<int:post_id>/', views.CreateBookMarkUserView.as_view()),
     path('delete-bookmark-user/<int:bookmarkuser_id>/', views.DeleteBookMarkUserView.as_view()),
+    path('<int:bookmark_id>/<int:post_id>/', views.BookMarkUserExists.as_view()),
 
     path('get-bookmark/<int:bookmark_id>/', views.GetBookMarkView.as_view()),
     path('get-bookmark-list/', views.GetBookMarkListView.as_view()),

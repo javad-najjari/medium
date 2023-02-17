@@ -412,6 +412,18 @@ class DeleteBookMarkUserView(APIView):
         return Response({'detail': 'The post has been successfully removed from the bookmark.'}, status=status.HTTP_204_NO_CONTENT)
 
 
+class BookMarkUserExists(APIView):
+    """
+    Getting `bookmark id` and `post id` and checking if there is a post in that bookmark or not.
+    """
+    permission_classes = (IsAuthenticated,)
+
+    def get(self, request, bookmark_id, post_id):
+        if BookMarkUser.objects.filter(book_mark__id=bookmark_id, post__id=post_id).exists():
+            return Response(True)
+        return Response(False)
+
+
 class GetBookMarkView(APIView):
     """
     Get id and show bookmark.
