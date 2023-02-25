@@ -399,9 +399,9 @@ class DeleteBookMarkUserView(APIView):
     """
     permission_classes = (IsAuthenticated,)
 
-    def delete(self, request, bookmarkuser_id):
+    def delete(self, request, bookmark_id, post_id):
         try:
-            book_mark_user = BookMarkUser.objects.get(id=bookmarkuser_id)
+            book_mark_user = BookMarkUser.objects.get(book_mark__id=bookmark_id, post__id=post_id)
         except BookMarkUser.DoesNotExist:
             return Response({'detail': 'The post does not already exist in the bookmark.'}, status=status.HTTP_404_NOT_FOUND)
 
