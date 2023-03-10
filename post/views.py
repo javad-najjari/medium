@@ -1,9 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
-from .serializers import PostDetailSerializer
+from rest_framework import status, generics
+from .serializers import PostDetailSerializer, PostSerializer
 from .models import Post, File
+from accounts.paginations import DefaultPagination
 
 
 
@@ -86,4 +87,19 @@ class UpdatePostView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({'detail': 'Changes applied successfully.'}, status=status.HTTP_200_OK)
+
+
+class GetPostsByTagView(generics.ListAPIView):
+    """
+    Getting a tag and displaying posts that contain that tag.
+    """
+    permission_classes = (IsAuthenticated,)
+    serializer_class = PostSerializer
+    pagination_class = DefaultPagination
+
+    def list(self, request, *args, **kwargs):
+        posts = Post.objects.filter(tags__contains=kwargs['tag'], status=True)
+        page = self.paginate_queryset(posts)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 

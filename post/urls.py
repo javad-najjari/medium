@@ -8,4 +8,5 @@ urlpatterns = [
     path('create/', views.CreatePostView.as_view()),
     path('delete/<int:post_id>/', views.DeletePostView.as_view()),
     path('update/<int:post_id>/', views.UpdatePostView.as_view()),
+    path('tag/<str:tag>/', views.GetPostsByTagView.as_view()),
 ]
